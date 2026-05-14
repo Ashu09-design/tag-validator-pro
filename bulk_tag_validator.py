@@ -10,7 +10,7 @@ import re
 import sys
 
 stealth_obj = Stealth()
-CONCURRENCY = 2  # Set to 2 to balance speed and memory limits on Render
+CONCURRENCY = 3  # Lower concurrency for more reliable results
 
 COOKIE_SELECTORS = [
     '#onetrust-accept-btn-handler',
@@ -143,10 +143,10 @@ async def validate_tags(browser, url, index, total):
 
         # Wait for analytics to fire after cookie acceptance
         try:
-            await page.wait_for_load_state("networkidle", timeout=8000)
+            await page.wait_for_load_state("networkidle", timeout=10000)
         except:
             pass
-        await asyncio.sleep(3)
+        await asyncio.sleep(5)
 
         # Performance API backup
         try:
@@ -359,17 +359,7 @@ async def main():
 
     all_results = []
     async with async_playwright() as p:
-        browser = await p.chromium.launch(
-            headless=True,
-            args=[
-                '--disable-dev-shm-usage',
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-gpu',
-                '--no-zygote',
-                '--single-process',
-            ]
-        )
+        browser = await p.chromium.launch(headless=True)
         for i in range(0, total, CONCURRENCY):
             batch = urls[i:i + CONCURRENCY]
             all_results.extend(await run_batch(browser, batch, i + 1, total))
