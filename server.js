@@ -30,7 +30,8 @@ let validatorLogs = [];
 app.post('/api/tag-validator/run', (req, res) => {
     if (validatorProcess) return res.status(400).json({ error: 'Running' });
     validatorLogs = ["Starting..."];
-    validatorProcess = spawn('python', ['-u', 'bulk_tag_validator.py'], { cwd: __dirname });
+    const pyCmd = process.platform === 'win32' ? 'python' : 'python3';
+    validatorProcess = spawn(pyCmd, ['-u', 'bulk_tag_validator.py'], { cwd: __dirname });
 
 
     validatorProcess.stdout.on('data', d => validatorLogs.push(d.toString().trim()));
