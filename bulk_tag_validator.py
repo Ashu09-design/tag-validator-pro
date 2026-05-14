@@ -10,7 +10,7 @@ import re
 import sys
 
 stealth_obj = Stealth()
-CONCURRENCY = 3  # Set to 3 since we added memory optimizations and resource blocking
+CONCURRENCY = 2  # Set to 2 to balance speed and memory limits on Render
 
 COOKIE_SELECTORS = [
     '#onetrust-accept-btn-handler',
@@ -127,14 +127,6 @@ async def validate_tags(browser, url, index, total):
 
         sys.stdout.write(f"[{index}/{total}] Checking: {url}\n")
         sys.stdout.flush()
-
-        # Block heavy resources to save memory and speed up
-        async def route_intercept(route):
-            if route.request.resource_type in ["image", "media", "font", "stylesheet"]:
-                await route.abort()
-            else:
-                await route.continue_()
-        await page.route("**/*", route_intercept)
 
         # Navigate
         try:
