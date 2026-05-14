@@ -10,7 +10,7 @@ import re
 import sys
 
 stealth_obj = Stealth()
-CONCURRENCY = 3  # Lower concurrency for more reliable results
+CONCURRENCY = 3  # Set to 3 since we added memory optimizations and resource blocking
 
 COOKIE_SELECTORS = [
     '#onetrust-accept-btn-handler',
@@ -128,6 +128,14 @@ async def validate_tags(browser, url, index, total):
         sys.stdout.write(f"[{index}/{total}] Checking: {url}\n")
         sys.stdout.flush()
 
+        # Block heavy resources to save memory and speed up
+        async def route_intercept(route):
+            if route.request.resource_type in ["image", "media", "font", "stylesheet"]:
+                await route.abort()
+            else:
+                await route.continue_()
+        await page.route("**/*", route_intercept)
+
         # Navigate
         try:
             await page.goto(url, wait_until="domcontentloaded", timeout=25000)
@@ -143,10 +151,10 @@ async def validate_tags(browser, url, index, total):
 
         # Wait for analytics to fire after cookie acceptance
         try:
-            await page.wait_for_load_state("networkidle", timeout=10000)
+            await page.wait_for_load_state("networkidle", timeout=8000)
         except:
             pass
-        await asyncio.sleep(5)
+        await asyncio.sleep(3)
 
         # Performance API backup
         try:
@@ -359,7 +367,17 @@ async def main():
 
     all_results = []
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
+        browser = await p.chromium.launch(
+            headless=True,
+            args=[
+                '--disable-dev-shm-usage',
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-gpu',
+                '--no-zygote',
+                '--single-process',
+            ]
+        )
         for i in range(0, total, CONCURRENCY):
             batch = urls[i:i + CONCURRENCY]
             all_results.extend(await run_batch(browser, batch, i + 1, total))
