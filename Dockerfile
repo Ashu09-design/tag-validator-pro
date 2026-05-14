@@ -19,7 +19,7 @@ COPY --chown=user:user package*.json ./
 RUN npm install
 
 COPY --chown=user:user requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --break-system-packages -r requirements.txt
 
 # Install browsers
 RUN playwright install chromium
