@@ -359,7 +359,14 @@ async def main():
 
     all_results = []
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
+        browser = await p.chromium.launch(
+            headless=True,
+            args=[
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage'
+            ]
+        )
         for i in range(0, total, CONCURRENCY):
             batch = urls[i:i + CONCURRENCY]
             all_results.extend(await run_batch(browser, batch, i + 1, total))
