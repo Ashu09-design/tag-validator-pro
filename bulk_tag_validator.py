@@ -155,7 +155,7 @@ async def validate_tags(browser, url, index, total):
         except:
             pass
 
-        # Scan ALL URLs
+        # Scan ALL URLs and Post Data
         gtm_ids = set()
         ga4_ids = set()
         tealium_accounts = []
@@ -166,10 +166,12 @@ async def validate_tags(browser, url, index, total):
             "adobe": False, "adobe_pv": False
         }
 
-        for u in all_urls:
-            if not u:
-                continue
+        # Listener for all requests including POST data
+        async def handle_request(request):
+            u = request.url
             low = u.lower()
+            post = (request.post_data or "").lower()
+            combined = low + " | " + post
 
             # TEALIUM
             if "tiqcdn.com" in low and "utag" in low:
@@ -180,39 +182,40 @@ async def validate_tags(browser, url, index, total):
             if "tealiumiq.com" in low or ("tealium" in low and ("collect" in low or "v.gif" in low or "/event" in low)):
                 flags["tealium_collect"] = True
 
-            # GTM
+            # GTM / GA4
             if "googletagmanager.com/gtm.js" in low:
                 flags["gtm"] = True
                 m = re.search(r'[?&]id=(GTM-[A-Z0-9]+)', u, re.I)
                 if m: gtm_ids.add(m.group(1).upper())
+            
             if "googletagmanager.com/gtag/js" in low:
                 flags["gtm"] = True
                 m = re.search(r'[?&]id=(G-[A-Z0-9]+)', u, re.I)
                 if m: ga4_ids.add(m.group(1).upper())
 
-            # GA4
             if "/g/collect" in low or (("google-analytics.com" in low or "analytics.google.com" in low) and "collect" in low):
                 flags["ga4"] = True
                 m = re.search(r'[?&]tid=(G-[A-Z0-9]+)', u, re.I)
+                if not m: m = re.search(r'[?&]tid=(G-[A-Z0-9]+)', combined, re.I)
                 if m: ga4_ids.add(m.group(1).upper())
-                if "en=page_view" in low:
+                if "en=page_view" in combined:
                     flags["ga4_pv"] = True
 
-            # ADOBE - /b/ss/ in ANY URL
-            if "/b/ss/" in low:
+            # ADOBE - Improved detection for POST and First-Party domains
+            if "/b/ss/" in low or ".omtrdc.net" in low or ".2o7.net" in low:
                 flags["adobe"] = True
                 m = re.search(r'/b/ss/([^/]+)/', u)
                 if m: adobe_rsids.add(m.group(1))
-                if "pe=" not in low:
+                
+                # Check for PageView in URL or Body
+                # If 'pe=' is missing, it's a PageView
+                if "pe=" not in combined:
                     flags["adobe_pv"] = True
-
-            if ".omtrdc.net" in low or ".2o7.net" in low:
-                flags["adobe"] = True
-                m = re.search(r'/b/ss/([^/]+)/', u)
-                if m: adobe_rsids.add(m.group(1))
-
+            
             if "appmeasurement" in low or "s_code" in low or "satellite-" in low or "launch-" in low:
                 flags["adobe"] = True
+
+        page.on("request", handle_request)
 
         # JS: utag
         try:
