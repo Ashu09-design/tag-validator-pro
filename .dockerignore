@@ -1,0 +1,6 @@
+node_modules
+uploads/
+input_sites.xlsx
+validation_results.xlsx
+__pycache__/
+*.pyc

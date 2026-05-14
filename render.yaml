@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: tag-validator-pro
+    env: docker
+    region: oregon
+    plan: free
+    healthCheckPath: /
+    envVars:
+      - key: PORT
+        value: 4000
