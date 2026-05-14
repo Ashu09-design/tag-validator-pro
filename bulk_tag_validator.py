@@ -116,13 +116,16 @@ async def validate_tags(browser, url, index, total):
                 if "en=page_view" in combined: flags["ga4_pv"] = True
 
             # Adobe
-            if "/b/ss/" in low or ".omtrdc.net" in low or ".2o7.net" in low or "metrics." in low:
+            if "/b/ss/" in low or ".omtrdc.net" in low or ".2o7.net" in low or "metrics." in low or "AQB=1" in combined:
                 # Basic check for Adobe-like requests
-                if "/b/ss/" in low or ".omtrdc.net" in low or ".2o7.net" in low:
+                if "/b/ss/" in low or ".omtrdc.net" in low or ".2o7.net" in low or "metrics." in low or "aqb=1" in combined:
                     flags["adobe"] = True
                     m = re.search(r'/b/ss/([^/]+)/', u)
                     if m: adobe_rsids.add(m.group(1))
-                    if "pe=" not in combined: flags["adobe_pv"] = True
+                    
+                    # PageView detection: if 'pe=' is missing, it's a PageView (s.t())
+                    if "pe=" not in combined:
+                        flags["adobe_pv"] = True
             
             if "appmeasurement" in low or "s_code" in low or "satellite-" in low or "launch-" in low:
                 flags["adobe"] = True
